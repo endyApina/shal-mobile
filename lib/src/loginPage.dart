@@ -135,42 +135,42 @@ class _LoginPageState extends State<LoginPage> {
     });
     _showCircularProgress();
 
-    if (_validateAndSave()) {
-      print(_email);
-      print(_password);
-
-      firebaseAuth.createUserWithEmailAndPassword(
-          email: emailController.text, password: passwordController.text
-      ).then((result) {
-        dbRef.child(result.user.uid).set({
-          "email": emailController.text,
-        }).then((res) {
-          Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage(title: result.user.uid,))
-          );
-        });
-      }).catchError((err) {
-        showDialog(context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: Text("Error"),
-                content: Text(err.message),
-                actions: [
-                  FlatButton(
-                    child: Text("Ok"),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  )
-                ],
-              );
-            }
-        );
-      });
-    } else {
-      print('Failed');
-    }
+//    if (_validateAndSave()) {
+//      print(_email);
+//      print(_password);
+//
+//      firebaseAuth.createUserWithEmailAndPassword(
+//          email: emailController.text, password: passwordController.text
+//      ).then((result) {
+//        dbRef.child(result.user.uid).set({
+//          "email": emailController.text,
+//        }).then((res) {
+//          Navigator.pushReplacement(
+//              context,
+//              MaterialPageRoute(builder: (context) => HomePage(title: result.user.uid,))
+//          );
+//        });
+//      }).catchError((err) {
+//        showDialog(context: context,
+//            builder: (BuildContext context) {
+//              return AlertDialog(
+//                title: Text("Error"),
+//                content: Text(err.message),
+//                actions: [
+//                  FlatButton(
+//                    child: Text("Ok"),
+//                    onPressed: () {
+//                      Navigator.of(context).pop();
+//                    },
+//                  )
+//                ],
+//              );
+//            }
+//        );
+//      });
+//    } else {
+//      print('Failed');
+//    }
   }
 
   Widget _submitButton() {
