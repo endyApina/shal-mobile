@@ -1,7 +1,11 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:Learn/src/Widget/bezierContainer.dart';
 import 'package:Learn/src/loginPage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:Learn/src/services/authentication.dart';
+import 'package:Learn/src/home.dart';
 
 class SignUpPage extends StatefulWidget {
   SignUpPage({Key key, this.title}) : super(key: key);
@@ -13,6 +17,19 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  final _formKey = new GlobalKey<FormState>();
+  FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+  DatabaseReference dbRef = FirebaseDatabase.instance.reference().child("Users");
+  TextEditingController emailController = TextEditingController();
+  TextEditingController fullNameController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+
+  String _email;
+  String _password;
+  String _errorMessage;
+
+  bool _isLoading;
+
   Widget _backButton() {
     return InkWell(
       onTap: () {
@@ -34,28 +51,236 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget _entryField(String title, {bool isPassword = false}) {
+  @override
+  void initState() {
+    _errorMessage = "";
+    _isLoading = false;
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    fullNameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+
+  }
+
+  void resetForm(){
+    _formKey.currentState.reset();
+    _errorMessage = "";
+  }
+
+  void toggleFormModel() {
+    resetForm();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: SingleChildScrollView(
+            child:Container(
+              height: MediaQuery.of(context).size.height,
+              child:Stack(
+                children: <Widget>[
+                  Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: new Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Expanded(
+                              flex: 3,
+                              child: SizedBox(),
+                            ),
+                            _title(),
+                            SizedBox(
+                              height: 50,
+                            ),
+                            _emailPasswordWidget(),
+                            SizedBox(
+                              height: 10,
+                            ),
+//                            _showErrorMessage(),
+                            _submitButton(),
+                            Expanded(
+                              flex: 2,
+                              child: SizedBox(),
+                            )
+                          ],
+                        ),
+                      )
+                  ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: _loginAccountLabel(),
+                  ),
+                  Positioned(top: 40, left: 0, child: _backButton()),
+                  Positioned(
+                      top: -MediaQuery.of(context).size.height * .15,
+                      right: -MediaQuery.of(context).size.width * .4,
+                      child: BezierContainer())
+                ],
+              ),
+            )
+        )
+    );
+  }
+
+  Widget _showCircularProgress() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+    return Container(
+      height: 0.0,
+      width: 0.0,
+    );
+  }
+
+  Widget _emailField() {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            title,
+            'Email',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           ),
           SizedBox(
             height: 10,
           ),
-          TextField(
-              obscureText: isPassword,
-              decoration: InputDecoration(
-                  border: InputBorder.none,
-                  fillColor: Color(0xfff3f3f4),
-                  filled: true))
+          TextFormField(
+            keyboardType: TextInputType.emailAddress,
+            controller: emailController,
+            decoration: InputDecoration(
+                border: InputBorder.none,
+                fillColor: Color(0xfff3f3f4),
+                filled: true
+            ),
+            validator: (value) => value.isEmpty ? 'Email cannot be empty' : null,
+            onSaved: (value) => _email = value.trim(),
+          )
         ],
       ),
     );
+  }
+
+  Widget _fullNameField() {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Full Name',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          TextFormField(
+            controller: fullNameController,
+            decoration: InputDecoration(
+                border: InputBorder.none,
+                fillColor: Color(0xfff3f3f4),
+                filled: true
+            ),
+            validator: (value) => value.isEmpty ? 'Full Name cannot be empty' : null,
+            onSaved: (value) => _email = value.trim(),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _passwordField() {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Password',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          TextFormField(
+            obscureText: true,
+            controller: passwordController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+                border: InputBorder.none,
+                fillColor: Color(0xfff3f3f4),
+                filled: true
+            ),
+            validator: (value) => value.isEmpty ? 'Password cannot be empty' : null,
+            onSaved: (value) => _password = value.trim(),
+          )
+        ],
+      ),
+    );
+  }
+
+  bool _validateAndSave() {
+    final form = _formKey.currentState;
+    if (form.validate()) {
+      form.save();
+      return true;
+    }
+
+    return false;
+  }
+
+  void _validateAndSubmit() {
+    setState(() {
+      _errorMessage = "";
+      _isLoading = true;
+    });
+    _showCircularProgress();
+
+    if (_validateAndSave()) {
+      print(_email);
+      print(_password);
+
+      firebaseAuth.createUserWithEmailAndPassword(
+          email: emailController.text, password: passwordController.text
+      ).then((result) {
+        dbRef.child(result.user.uid).set({
+          "email": emailController.text,
+          "full_name": fullNameController.text,
+        }).then((res) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage(title: result.user.uid,))
+          );
+        });
+      }).catchError((err) {
+        showDialog(context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Error"),
+              content: Text(err.message),
+              actions: [
+                FlatButton(
+                  child: Text("Ok"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                )
+              ],
+            );
+          }
+        );
+      });
+    } else {
+      print('Failed');
+    }
   }
 
   Widget _submitButton() {
@@ -75,12 +300,34 @@ class _SignUpPageState extends State<SignUpPage> {
           gradient: LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
-              colors: [Color(0xFFAED581), Color(0xFF558B2F)])),
-      child: Text(
-        'Register Now',
-        style: TextStyle(fontSize: 20, color: Colors.white),
+              colors: [Color(0xFFAED581), Color(0xFF558B2F)])
       ),
+      child: RaisedButton(
+        color: Colors.transparent,
+        child: Text(
+          'Register Now',
+          style: TextStyle(fontSize: 20, color: Colors.white),
+        ),
+        onPressed: _validateAndSubmit,
+      )
     );
+  }
+
+  Widget _showErrorMessage() {
+    if (_email.length > 0 && _errorMessage != null) {
+      return new Text(
+        _errorMessage,
+        style: TextStyle(
+            fontSize: 13.0,
+            color: Colors.red,
+            height: 1.0,
+            fontWeight: FontWeight.w300),
+      );
+    } else {
+      return new Container(
+        height: 0.0,
+      );
+    }
   }
 
   Widget _loginAccountLabel() {
@@ -142,60 +389,10 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget _emailPasswordWidget() {
     return Column(
       children: <Widget>[
-        _entryField("Full Name"),
-        _entryField("Email"),
-        _entryField("Password", isPassword: true),
+        _fullNameField(),
+        _emailField(),
+        _passwordField(),
       ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        child:Container(
-          height: MediaQuery.of(context).size.height,
-          child:Stack(
-            children: <Widget>[
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Expanded(
-                      flex: 3,
-                      child: SizedBox(),
-                    ),
-                    _title(),
-                    SizedBox(
-                      height: 50,
-                    ),
-                    _emailPasswordWidget(),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    _submitButton(),
-                    Expanded(
-                      flex: 2,
-                      child: SizedBox(),
-                    )
-                  ],
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: _loginAccountLabel(),
-              ),
-              Positioned(top: 40, left: 0, child: _backButton()),
-              Positioned(
-                  top: -MediaQuery.of(context).size.height * .15,
-                  right: -MediaQuery.of(context).size.width * .4,
-                  child: BezierContainer())
-            ],
-          ),
-        )
-      )
     );
   }
 }

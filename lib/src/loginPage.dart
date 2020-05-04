@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:Learn/src/signup.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 import 'Widget/bezierContainer.dart';
 
@@ -14,6 +16,18 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = new GlobalKey<FormState>();
+  FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+  DatabaseReference dbRef = FirebaseDatabase.instance.reference().child("Users");
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+
+  String _email;
+  String _password;
+  String _errorMessage;
+
+  bool _isLoading;
+
   Widget _backButton() {
     return InkWell(
       onTap: () {
@@ -35,28 +49,128 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _entryField(String title, {bool isPassword = false}) {
+  Widget _emailField() {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            title,
+            'Email',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           ),
           SizedBox(
             height: 10,
           ),
-          TextField(
-              obscureText: isPassword,
-              decoration: InputDecoration(
-                  border: InputBorder.none,
-                  fillColor: Color(0xfff3f3f4),
-                  filled: true))
+          TextFormField(
+            keyboardType: TextInputType.emailAddress,
+            controller: emailController,
+            decoration: InputDecoration(
+                border: InputBorder.none,
+                fillColor: Color(0xfff3f3f4),
+                filled: true
+            ),
+            validator: (value) => value.isEmpty ? 'Email cannot be empty' : null,
+            onSaved: (value) => _email = value.trim(),
+          )
         ],
       ),
     );
+  }
+
+  Widget _passwordField() {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Password',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          TextFormField(
+            obscureText: true,
+            controller: passwordController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+                border: InputBorder.none,
+                fillColor: Color(0xfff3f3f4),
+                filled: true
+            ),
+            validator: (value) => value.isEmpty ? 'Password cannot be empty' : null,
+            onSaved: (value) => _password = value.trim(),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _showCircularProgress() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+    return Container(
+      height: 0.0,
+      width: 0.0,
+    );
+  }
+
+  bool _validateAndSave() {
+    final form = _formKey.currentState;
+    if (form.validate()) {
+      form.save();
+      return true;
+    }
+
+    return false;
+  }
+
+  void _validateAndSubmit() {
+    setState(() {
+      _errorMessage = "";
+      _isLoading = true;
+    });
+    _showCircularProgress();
+
+    if (_validateAndSave()) {
+      print(_email);
+      print(_password);
+
+      firebaseAuth.createUserWithEmailAndPassword(
+          email: emailController.text, password: passwordController.text
+      ).then((result) {
+        dbRef.child(result.user.uid).set({
+          "email": emailController.text,
+        }).then((res) {
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage(title: result.user.uid,))
+          );
+        });
+      }).catchError((err) {
+        showDialog(context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text("Error"),
+                content: Text(err.message),
+                actions: [
+                  FlatButton(
+                    child: Text("Ok"),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  )
+                ],
+              );
+            }
+        );
+      });
+    } else {
+      print('Failed');
+    }
   }
 
   Widget _submitButton() {
@@ -77,10 +191,13 @@ class _LoginPageState extends State<LoginPage> {
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
               colors: [Color(0xFFAED581), Color(0xFF558B2F)])),
-      child: Text(
-        'Login',
-        style: TextStyle(fontSize: 20, color: Colors.white),
-      ),
+      child: RaisedButton(
+        color: Colors.transparent,
+        child: Text(
+          'Login',
+          style: TextStyle(fontSize: 20, color: Colors.white),
+        ),
+      )
     );
   }
 
@@ -272,8 +389,8 @@ class _LoginPageState extends State<LoginPage> {
   Widget _emailPasswordWidget() {
     return Column(
       children: <Widget>[
-        _entryField("Email"),
-        _entryField("Password", isPassword: true),
+        _emailField(),
+        _passwordField(),
       ],
     );
   }
@@ -288,35 +405,39 @@ class _LoginPageState extends State<LoginPage> {
               children: <Widget>[
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Expanded(
-                        flex: 3,
-                        child: SizedBox(),
-                      ),
-                      _title(),
-                      SizedBox(
-                        height: 50,
-                      ),
-                      _emailPasswordWidget(),
-                      SizedBox(
-                        height: 20,
-                      ),
-                      _submitButton(),
-                      Container(
-                        padding: EdgeInsets.symmetric(vertical: 10),
-                        alignment: Alignment.centerRight,
-                        child: Text('Forgot Password ?',
-                            style:
-                                TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: SizedBox(),
-                      ),
-                    ],
+                  child: new Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Expanded(
+                          flex: 3,
+                          child: SizedBox(),
+                        ),
+                        _title(),
+                        SizedBox(
+                          height: 50,
+                        ),
+                        _emailPasswordWidget(),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        _submitButton(),
+                        Container(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          alignment: Alignment.centerRight,
+                          child: Text('Forgot Password ?',
+                              style:
+                              TextStyle(fontSize: 14, fontWeight: FontWeight.w500)
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: SizedBox(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 Align(

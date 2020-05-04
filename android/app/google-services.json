@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "829349773477",
+    "firebase_url": "https://e-learn-270719.firebaseio.com",
+    "project_id": "e-learn-270719",
+    "storage_bucket": "e-learn-270719.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:829349773477:android:aaed2ef8b64d1791c4cd4c",
+        "android_client_info": {
+          "package_name": "endyapina.shal.io"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "829349773477-ordkpchemtsem0ojfoe9sddi4p7lq171.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdXP4uKsRiXqJMcwO3XopqMPp6tXhviKE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "829349773477-ordkpchemtsem0ojfoe9sddi4p7lq171.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

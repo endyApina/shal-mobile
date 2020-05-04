@@ -1,4 +1,4 @@
-package thealphamerc.flutter_login_signup;
+package endyapina.shal.io;
 
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity;
