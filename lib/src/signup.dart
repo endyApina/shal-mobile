@@ -6,11 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:Learn/src/services/authentication.dart';
 import 'package:Learn/src/home.dart';
+import 'package:Learn/src/models/user.dart';
 
 class SignUpPage extends StatefulWidget {
-  SignUpPage({Key key, this.title}) : super(key: key);
+  SignUpPage({this.auth, this.loginCallback});
 
-  final String title;
+  final BaseAuth auth;
+  final VoidCallback loginCallback;
 
   @override
   _SignUpPageState createState() => _SignUpPageState();
@@ -26,6 +28,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
   String _email;
   String _password;
+  String _fullName;
   String _errorMessage;
 
   bool _isLoading;
@@ -183,6 +186,8 @@ class _SignUpPageState extends State<SignUpPage> {
             height: 10,
           ),
           TextFormField(
+            autofocus: false,
+            textCapitalization: TextCapitalization.words,
             controller: fullNameController,
             decoration: InputDecoration(
                 border: InputBorder.none,
@@ -190,7 +195,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 filled: true
             ),
             validator: (value) => value.isEmpty ? 'Full Name cannot be empty' : null,
-            onSaved: (value) => _email = value.trim(),
+            onSaved: (value) => _fullName = value.trim(),
           )
         ],
       ),
@@ -237,7 +242,7 @@ class _SignUpPageState extends State<SignUpPage> {
     return false;
   }
 
-  void _validateAndSubmit() {
+  void _validateAndSubmit() async {
     setState(() {
       _errorMessage = "";
       _isLoading = true;
@@ -247,37 +252,37 @@ class _SignUpPageState extends State<SignUpPage> {
     if (_validateAndSave()) {
       print(_email);
       print(_password);
+      print(_fullName);
+      String userID = "";
 
-      firebaseAuth.createUserWithEmailAndPassword(
-          email: emailController.text, password: passwordController.text
-      ).then((result) {
-        dbRef.child(result.user.uid).set({
-          "email": emailController.text,
-          "full_name": fullNameController.text,
-        }).then((res) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => HomePage(title: result.user.uid,))
-          );
+      try {
+        await widget.auth.signUp(_email, _password).then((uID) {
+          widget.auth.addUserSettingsDB(new User(
+            userID: uID,
+            email: _email,
+            fullName: _fullName,
+          ));
         });
-      }).catchError((err) {
+        await Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomePage()));
+      } catch (e) {
+        print("Sign up error: $e" );
         showDialog(context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("Error"),
-              content: Text(err.message),
-              actions: [
-                FlatButton(
-                  child: Text("Ok"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                )
-              ],
-            );
-          }
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text("Error"),
+                content: Text(e.message),
+                actions: [
+                  FlatButton(
+                    child: Text("Ok"),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  )
+                ],
+              );
+            }
         );
-      });
+      }
     } else {
       print('Failed');
     }

@@ -1,3 +1,5 @@
+import 'package:Learn/src/home.dart';
+import 'package:Learn/src/services/authentication.dart';
 import 'package:flutter/material.dart';
 import 'package:Learn/src/signup.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,9 +9,10 @@ import 'package:firebase_database/firebase_database.dart';
 import 'Widget/bezierContainer.dart';
 
 class LoginPage extends StatefulWidget {
-  LoginPage({Key key, this.title}) : super(key: key);
+  LoginPage({this.auth, this.loginCallback});
 
-  final String title;
+  final BaseAuth auth;
+  final VoidCallback loginCallback;
 
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -135,42 +138,37 @@ class _LoginPageState extends State<LoginPage> {
     });
     _showCircularProgress();
 
-//    if (_validateAndSave()) {
-//      print(_email);
-//      print(_password);
-//
-//      firebaseAuth.createUserWithEmailAndPassword(
-//          email: emailController.text, password: passwordController.text
-//      ).then((result) {
-//        dbRef.child(result.user.uid).set({
-//          "email": emailController.text,
-//        }).then((res) {
-//          Navigator.pushReplacement(
-//              context,
-//              MaterialPageRoute(builder: (context) => HomePage(title: result.user.uid,))
-//          );
-//        });
-//      }).catchError((err) {
-//        showDialog(context: context,
-//            builder: (BuildContext context) {
-//              return AlertDialog(
-//                title: Text("Error"),
-//                content: Text(err.message),
-//                actions: [
-//                  FlatButton(
-//                    child: Text("Ok"),
-//                    onPressed: () {
-//                      Navigator.of(context).pop();
-//                    },
-//                  )
-//                ],
-//              );
-//            }
-//        );
-//      });
-//    } else {
-//      print('Failed');
-//    }
+    if (_validateAndSave()) {
+      print(_password);
+      print(_email);
+
+      firebaseAuth.signInWithEmailAndPassword(
+          email: _email, password: passwordController.text
+      ).then((result) {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage())
+        );
+      }).catchError((err) {
+        showDialog(context: context,
+          builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Error"),
+            content: Text(err.message),
+            actions: [
+              FlatButton(
+                child: Text("Ok"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              )
+            ],
+          );}
+        );
+      });
+    } else {
+      print('Failed');
+    }
   }
 
   Widget _submitButton() {
@@ -197,6 +195,7 @@ class _LoginPageState extends State<LoginPage> {
           'Login',
           style: TextStyle(fontSize: 20, color: Colors.white),
         ),
+        onPressed: _validateAndSubmit,
       )
     );
   }
